@@ -74,3 +74,65 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`
    - `400 Bad Request`: Si el consumo ya está cerrado.
 
 ---
+### 3. **Cambiar el Cliente Asociado a un Consumo Abierto**
+   
+   **URL**: `/restaurante/api/v1/consumos/mesa/{idmesa}/cambiar-cliente`
+   
+   **Método**: `POST`
+   
+   **Descripción**: Este endpoint permite cambiar el cliente asociado a un consumo abierto para una mesa específica.
+   
+   **Cuerpo de la solicitud (JSON)**:
+   ```json
+   {
+       "ciCliente": "87654321",  # Nuevo CI del cliente (obligatorio)
+       "nombre": "Ana Gomez"     # Nombre del cliente (opcional, se usa si el cliente no está registrado)
+   }
+   ```
+
+   **Respuestas**:
+   - `200 OK`: Si el cliente se actualizó exitosamente.
+   - `404 Not Found`: Si no hay consumo abierto o si la mesa no existe.
+   - `400 Bad Request`: Si el campo `ciCliente` no es proporcionado o si ocurre un error con el cliente.
+
+---
+
+### 4. **Agregar un Detalle al Consumo Actual**
+   
+   **URL**: `/restaurante/api/v1/consumos/mesa/{idmesa}/agregar-detalle`
+   
+   **Método**: `POST`
+   
+   **Descripción**: Este endpoint agrega un nuevo detalle de consumo a un consumo abierto para una mesa específica.
+
+   **Cuerpo de la solicitud (JSON)**:
+   ```json
+   {
+       "idproducto": 1,  # ID del producto (obligatorio)
+       "cantidad": 2     # Cantidad de productos (obligatorio)
+   }
+   ```
+
+   **Respuestas**:
+   - `201 Created`: Si el detalle fue agregado exitosamente.
+   - `404 Not Found`: Si el producto no existe o si no hay un consumo abierto en la mesa.
+   - `400 Bad Request`: Si la cantidad no es válida.
+
+---
+
+### 5. **Cerrar el Consumo Actual y Generar Ticket PDF**
+   
+   **URL**: `/restaurante/api/v1/consumos/mesa/{idmesa}/cerrar`
+   
+   **Método**: `POST`
+   
+   **Descripción**: Este endpoint cierra el consumo actual para una mesa específica y genera un ticket en formato PDF con los detalles del consumo.
+
+   **Cuerpo de la solicitud (JSON)**: No es necesario enviar un cuerpo JSON para cerrar el ticker.
+
+   **Respuestas**:
+   - `200 OK`: Si el consumo fue cerrado correctamente y se generó el ticket PDF.
+   - `404 Not Found`: Si no hay consumo abierto para la mesa.
+   - `400 Bad Request`: Si el consumo ya está cerrado.
+
+---
