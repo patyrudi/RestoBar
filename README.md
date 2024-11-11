@@ -39,7 +39,7 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`
 
 ### 1. **Abrir un Consumo para una Mesa**
    
-   **URL**: `/restaurante/api/v1/consumos/mesa/{idmesa}/crear`
+   **URL**: `/restaurante/api/v1/consumos/mesa/{idmesa}/crear/`
    
    **Método**: `POST`
    
@@ -48,8 +48,8 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`
    **Cuerpo de la solicitud (JSON)**:
    ```json
    {
-       "ciCliente": "12345678",  # CI del cliente (obligatorio)
-       "nombre": "Juan Perez"    # Nombre del cliente (opcional, se usa si el cliente no está registrado)
+       "ciCliente": "1234567", 
+       "nombre": "Juan Perez"    
    }
    ```
 
@@ -62,7 +62,7 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`
 
 ### 2. **Obtener el Consumo Actual de una Mesa**
    
-   **URL**: `/restaurante/api/v1/consumos/mesa/{idmesa}`
+   **URL**: `/restaurante/api/v1/consumos/mesa/{idmesa}/`
    
    **Método**: `GET`
    
@@ -76,7 +76,7 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`
 ---
 ### 3. **Cambiar el Cliente Asociado a un Consumo Abierto**
    
-   **URL**: `/restaurante/api/v1/consumos/mesa/{idmesa}/cambiar-cliente`
+   **URL**: `/restaurante/api/v1/consumos/mesa/{idmesa}/cambiar-cliente/`
    
    **Método**: `POST`
    
@@ -85,8 +85,8 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`
    **Cuerpo de la solicitud (JSON)**:
    ```json
    {
-       "ciCliente": "87654321",  # Nuevo CI del cliente (obligatorio)
-       "nombre": "Ana Gomez"     # Nombre del cliente (opcional, se usa si el cliente no está registrado)
+       "ciCliente": "8765432",  
+       "nombre": "Ana Gomez"     
    }
    ```
 
@@ -99,7 +99,7 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`
 
 ### 4. **Agregar un Detalle al Consumo Actual**
    
-   **URL**: `/restaurante/api/v1/consumos/mesa/{idmesa}/agregar-detalle`
+   **URL**: `/restaurante/api/v1/consumos/mesa/{idmesa}/agregar-detalle/`
    
    **Método**: `POST`
    
@@ -108,8 +108,8 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`
    **Cuerpo de la solicitud (JSON)**:
    ```json
    {
-       "idproducto": 1,  # ID del producto (obligatorio)
-       "cantidad": 2     # Cantidad de productos (obligatorio)
+       "idproducto": 1,  
+       "cantidad": 2     
    }
    ```
 
@@ -122,7 +122,7 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`
 
 ### 5. **Cerrar el Consumo Actual y Generar Ticket PDF**
    
-   **URL**: `/restaurante/api/v1/consumos/mesa/{idmesa}/cerrar`
+   **URL**: `/restaurante/api/v1/consumos/mesa/{idmesa}/cerrar/`
    
    **Método**: `POST`
    
