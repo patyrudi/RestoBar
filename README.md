@@ -1,5 +1,4 @@
-# Restaurante API
-
+# RestoBar
 Este proyecto es una API para gestionar consumos en un restaurante, permitiendo registrar productos, cambiar clientes, agregar detalles de consumo y cerrar un consumo generando un ticket en formato PDF.
 
 ## Requisitos
@@ -13,8 +12,8 @@ Este proyecto es una API para gestionar consumos en un restaurante, permitiendo 
 
 1. **Clona el repositorio**:
     ```bash
-    git clone https://github.com/patyrudi/restauranteAPI
-    cd restauranteAPI
+    git clone https://github.com/patyrudi/RestoBar
+    cd RestoBar
     ```
 
 2. **Instala las dependencias**:
