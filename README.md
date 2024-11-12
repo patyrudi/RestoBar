@@ -20,14 +20,18 @@ Este proyecto es una API para gestionar consumos en un restaurante, permitiendo 
     ```bash
     pip install -r requirements.txt
     ```
-
-3. **Migrations**:
+3.  **MakeMigrations**:
+    ```bash
+    python manage.py makemigrations
+    ```
+    
+4. **Migrations**:
     Asegúrate de tener las migraciones aplicadas para que la base de datos esté lista:
     ```bash
     python manage.py migrate
     ```
 
-4. **Inicia el servidor**:
+5. **Inicia el servidor**:
     ```bash
     python manage.py runserver
     ```
