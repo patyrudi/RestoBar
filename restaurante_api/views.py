@@ -29,7 +29,6 @@ class ConsumoViewSet(viewsets.ModelViewSet):
         if Consumo.objects.filter(idmesa=idmesa, estado=1).exists():
             raise ValidationError({"error": "La mesa ya tiene un consumo abierto."})
 
-        # Si no existe, proceder con la creación del consumo
         return super().create(request, *args, **kwargs)
     
     @action(detail=False, methods=['post'], url_path=r'mesa/(?P<idmesa>\d+)/crear')
@@ -38,11 +37,9 @@ class ConsumoViewSet(viewsets.ModelViewSet):
         Abre un consumo en la mesa especificada.
         Valida que no haya un consumo abierto y recibe los datos del cliente.
         """
-        # Validar que la mesa no tiene un consumo abierto (estado 1)
         if Consumo.objects.filter(idmesa=idmesa, estado=1).exists():
             raise ValidationError({"error": "La mesa ya tiene un consumo abierto."})
-
-        # Obtener o crear el cliente
+            
         ciCliente = request.data.get("ciCliente")
         nombre = request.data.get("nombre")
 
@@ -51,9 +48,8 @@ class ConsumoViewSet(viewsets.ModelViewSet):
         else:
             return Response({"error": "El campo ciCliente es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Crear el consumo para la mesa con el cliente
         try:
-            mesa = Mesa.objects.get(idmesa=idmesa)  # Verificar si la mesa existe
+            mesa = Mesa.objects.get(idmesa=idmesa) 
         except Mesa.DoesNotExist:
             return Response({"error": "Mesa no encontrada."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -96,7 +92,6 @@ class ConsumoViewSet(viewsets.ModelViewSet):
             ciCliente = request.data.get("ciCliente")
             nombre = request.data.get("nombre")
 
-            # Si no existe el cliente, lo crea
             cliente, created = Cliente.objects.get_or_create(ciCliente=ciCliente, defaults={"nombre": nombre})
             consumo.idcliente = cliente
             consumo.save()
@@ -121,7 +116,6 @@ class ConsumoViewSet(viewsets.ModelViewSet):
             producto = Producto.objects.get(idproducto=idproducto)
             detalle = DetalleConsumo.objects.create(idproducto=producto, idConsumo=consumo, cantidad=cantidad)
 
-            # Actualizar el total del consumo
             consumo.total += producto.precio * cantidad
             consumo.save()
 
@@ -141,12 +135,10 @@ class ConsumoViewSet(viewsets.ModelViewSet):
             if not consumo:
                 return Response({"error": "La mesa no tiene consumos abiertos."}, status=status.HTTP_404_NOT_FOUND)
 
-            # Cambiar estado a cerrado y guardar la fecha de cierre
             consumo.estado = 2
             consumo.fecha_cierre = timezone.now()
             consumo.save()
-
-            # Generar el ticket PDF
+            
             pdf_path = self.generar_ticket(consumo)
 
             return Response({
@@ -157,22 +149,22 @@ class ConsumoViewSet(viewsets.ModelViewSet):
             return Response({"error": "Consumo no encontrado."}, status=status.HTTP_404_NOT_FOUND)
 
     def generar_ticket(self, consumo):
-        # Ruta para guardar el PDF
+  
         pdf_dir = "tickets"
         os.makedirs(pdf_dir, exist_ok=True)
         pdf_filename = f"ticket_consumo_{consumo.idConsumo}.pdf"
         pdf_path = os.path.join(pdf_dir, pdf_filename)
 
-        # Crear el canvas para el PDF
+    
         c = canvas.Canvas(pdf_path, pagesize=letter)
         c.setTitle(f"Ticket Consumo {consumo.idConsumo}")
 
-        # Encabezado
+   
         c.drawString(100, 750, f"Ticket de Consumo - ID: {consumo.idConsumo}")
         c.drawString(100, 730, f"Fecha: {consumo.fecha_cierre.strftime('%Y-%m-%d %H:%M:%S')}")
         c.drawString(100, 710, f"Cliente: {consumo.idcliente.nombre}")
 
-        # Detalles del consumo
+     
         y_position = 680
         c.drawString(100, y_position, "Detalles del Consumo:")
         y_position -= 20
@@ -188,11 +180,11 @@ class ConsumoViewSet(viewsets.ModelViewSet):
             c.drawString(100, y_position, f"{producto} - Cantidad: {cantidad} - Precio: {precio} - Subtotal: {subtotal}")
             y_position -= 20
 
-        # Total del consumo
+      
         y_position -= 20
         c.drawString(100, y_position, f"Total: {total}")
 
-        # Finalizar y guardar el PDF
+
         c.showPage()
         c.save()
 
