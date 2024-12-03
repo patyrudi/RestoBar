@@ -6,14 +6,18 @@ from django.utils import timezone
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import os
-from .models import CategoriaProducto, Producto, Mesa, Cliente, Consumo, DetalleConsumo
+from .models import CategoriaProducto, Producto, Mesa, Cliente, Consumo, DetalleConsumo, Reserva, Empleado, Rol, Area
 from .serializer import (
     CategoriaProductoSerializer, 
     ProductoSerializer, 
     MesaSerializer, 
     ClienteSerializer, 
     ConsumoSerializer, 
-    DetalleConsumoSerializer
+    DetalleConsumoSerializer,
+    AreaSerializer,
+    ReservaSerializer, 
+    EmpleadoSerializer,
+    RolSerializer
 )
 class ConsumoViewSet(viewsets.ModelViewSet):
     queryset = Consumo.objects.all()
@@ -193,7 +197,18 @@ class ConsumoViewSet(viewsets.ModelViewSet):
         c.save()
 
         return pdf_path
-    
+
+class ReservaViewSet(viewsets.ModelViewSet):
+    queryset = Reserva.objects.all()
+    serializer_class = ReservaSerializer
+
+class EmpleadoViewSet(viewsets.ModelViewSet):
+    queryset = Empleado.objects.all()
+    serializer_class = EmpleadoSerializer
+
+class AreaViewSet(viewsets.ModelViewSet):
+    queryset = Area.objects.all()
+    serializer_class = AreaSerializer
 
 class DetalleConsumoViewSet(viewsets.ModelViewSet):
     queryset = DetalleConsumo.objects.all()
@@ -218,5 +233,6 @@ class ClienteViewSet(viewsets.ModelViewSet):
     queryset = Cliente.objects.all()
     serializer_class = ClienteSerializer
 
-
-
+class RolViewSet(viewsets.ModelViewSet):
+    queryset = Rol.objects.all()
+    serializer_class = RolSerializer

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CategoriaProducto, Producto, Mesa, Cliente, Consumo, DetalleConsumo
+from .models import CategoriaProducto, Producto, Mesa, Cliente, Consumo, DetalleConsumo, Reserva, Empleado, Area, Rol
 
 class CategoriaProductoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -38,3 +38,23 @@ class ConsumoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Consumo
         fields = ['idConsumo', 'estado', 'total', 'fecha_inicio', 'fecha_cierre', 'idmesa', 'idcliente', 'detalles_consumo']
+
+class ReservaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reserva
+        fields = '__all__'
+
+class RolSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Rol
+        fields = '__all__'
+
+class EmpleadoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Empleado
+        fields = '__all__'
+
+class AreaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Area
+        fields = '__all__'
