@@ -47,6 +47,8 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`
    **Método**: `POST`
    
    **Descripción**: Este endpoint abre un consumo en una mesa específica. Si ya hay un consumo abierto en la mesa (estado 1), la solicitud será rechazada.
+   Validación de Stock
+   Alerta de Stock Bajo
    
    **Cuerpo de la solicitud (JSON)**:
    ```json
