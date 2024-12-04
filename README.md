@@ -74,8 +74,8 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`.
 **Cuerpo de la solicitud (JSON)**:
 ```json
 {
-    "idproducto": 1,
-    "cantidad": 2
+    "idproducto": 8,
+    "cantidad": 5
 }
 ```
 **Ejemplo de Respuesta**:
