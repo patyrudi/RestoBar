@@ -1,5 +1,9 @@
 from rest_framework import serializers
+<<<<<<< HEAD
 from .models import CategoriaProducto, Producto, Mesa, Cliente, Consumo, DetalleConsumo, Reserva, Empleado, Area, Rol, ConfiguracionSistema
+=======
+from .models import CategoriaProducto, Producto, Mesa, Cliente, Consumo, DetalleConsumo, Reserva, Empleado, Area, Rol
+>>>>>>> f15cb2a5528b7202102cb788d8c236d045a2991b
 
 class CategoriaProductoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -57,9 +61,12 @@ class EmpleadoSerializer(serializers.ModelSerializer):
 class AreaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Area
+<<<<<<< HEAD
         fields = '__all__'
 
 class ConfiguracionSistemaSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConfiguracionSistema
+=======
+>>>>>>> f15cb2a5528b7202102cb788d8c236d045a2991b
         fields = '__all__'

@@ -14,8 +14,8 @@ Este proyecto es una API para gestionar consumos en un restaurante, permitiendo 
 
 1. **Clona el repositorio**:
     ```bash
-    git clone https://github.com/patyrudi/restauranteAPI
-    cd restauranteAPI
+    git clone https://github.com/patyrudi/RestoBar
+    cd RestoBar
     ```
 
 2. **Instala las dependencias**:
@@ -28,7 +28,7 @@ Este proyecto es una API para gestionar consumos en un restaurante, permitiendo 
     python manage.py migrate
     ```
 
-4. **Inicia el servidor**:
+5. **Inicia el servidor**:
     ```bash
     python manage.py runserver
     ```
