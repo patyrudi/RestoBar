@@ -28,7 +28,7 @@ Este proyecto es una API para gestionar consumos en un restaurante, permitiendo 
     python manage.py migrate
     ```
 
-5. **Inicia el servidor**:
+4. **Inicia el servidor**:
     ```bash
     python manage.py runserver
     ```
@@ -42,7 +42,7 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`.
 #### 1. Abrir un Consumo para una Mesa
 **URL**: `/restaurante/api/v1/consumos/mesa/{idmesa}/crear/`  
 **Método**: `POST`  
-**Descripción**: Abre un consumo en una mesa específica. Si ya hay un consumo abierto en la mesa (estado 1), la solicitud será rechazada. 
+**Descripción**: Abre un consumo en una mesa específica. Si ya hay un consumo abierto en la mesa (estado 1), la solicitud será rechazada.  
 **Cuerpo de la solicitud (JSON)**:
 ```json
 {
@@ -69,13 +69,23 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`.
 
 #### 4. Agregar un Detalle al Consumo Actual
 **URL**: `/restaurante/api/v1/consumos/mesa/{idmesa}/agregar-detalle/`  
-**Método**: `POST`
-**Descripción**: Al seleccionar un producto y especificar su cantidad durante la creación del consumo, el sistema verifica automáticamente los niveles de stock disponibles. Si algún producto tiene un nivel de stock por debajo del mínimo establecido, se genera una alerta.
+**Método**: `POST`  
+**Descripción**: Al seleccionar un producto y especificar su cantidad durante la creación del consumo, el sistema verifica automáticamente los niveles de stock disponibles. Si algún producto tiene un nivel de stock por debajo del mínimo establecido, se genera una alerta.  
 **Cuerpo de la solicitud (JSON)**:
 ```json
 {
-    "idproducto": 1,
-    "cantidad": 2
+    "idproducto": 8,
+    "cantidad": 5
+}
+```
+**Ejemplo de Respuesta**:
+```json
+{
+  "id": 5,
+  "cantidad": 5,
+  "idproducto": 8,
+  "idConsumo": 6,
+  "alerta_stock_minimo": "Alerta: El stock del producto ha alcanzado o es menor al mínimo (5)."
 }
 ```
 **Ejemplo de Respuesta**:
@@ -144,9 +154,9 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`.
 **Cuerpo de la solicitud (JSON)**:
 ```json
 {
-    "idmesa": 2,
-    "ciCliente": "1234567",
-    "nombre": "Juan Perez"
+    "idmesa": 4,
+    "ciCliente": "7535234",
+    "nombre": "Rosa Franco"
 }
 ```
 
@@ -231,3 +241,4 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`.
     "formato_impresion": "PDF"
 }
 ```
+
