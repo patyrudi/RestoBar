@@ -97,12 +97,12 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`.
   "idConsumo": 6,
   "alerta_stock_minimo": "Alerta: El stock del producto ha alcanzado o es menor al mínimo (5)."
 }
+```
 
 #### 5. Cerrar el Consumo Actual y Generar Ticket PDF
 **URL**: `/restaurante/api/v1/consumos/mesa/{idmesa}/cerrar/`  
 **Método**: `POST`  
 
----
 
 ### Gestión de Mesas
 
