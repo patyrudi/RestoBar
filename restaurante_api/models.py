@@ -84,6 +84,8 @@ class Consumo(models.Model):
     total = models.PositiveIntegerField(default=0)
     fecha_inicio = models.DateTimeField(auto_now_add=True)
     fecha_cierre = models.DateTimeField(null=True, blank=True)
+    monto_propina = models.PositiveIntegerField(default=0)
+    idmediopago = models.ForeignKey('MedioPago', on_delete=models.CASCADE, null=True, related_name='consumos')
 
     def __str__(self):
         return f'Consumo {self.idConsumo} - Mesa {self.idmesa.idmesa}'
@@ -123,7 +125,6 @@ class ConfiguracionSistema(models.Model):
 class MedioPago(models.Model):
     idmediopago = models.AutoField(primary_key=True)
     descripcion = models.CharField(max_length=100)
-    codigo = models.CharField(max_length=20, unique=True)
     activo = models.BooleanField(default=True)
 
     def __str__(self):

@@ -23,7 +23,7 @@ from .serializer import (
     Area,
     ConfiguracionSistemaSerializer,
     PedidoSerializer,
-    DetalleProductoSerializer
+    MedioPagoSerializer
 )
 
 class ConsumoViewSet(viewsets.ModelViewSet):
@@ -178,7 +178,18 @@ class ConsumoViewSet(viewsets.ModelViewSet):
         Cierra el consumo actual y genera el ticket en PDF para una mesa específica.
         """
         try:
+            id_medio_pago = request.data.get('id_medio_pago')
+            if id_medio_pago is None:
+                return Response({"error": "Es necesario especificar el medio de pago."},
+                                 status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                medio_pago = MedioPago.objects.get(idmediopago =  id_medio_pago)
+            except MedioPago.DoesNotExist:
+                return Response({"error": "Medio de Pago no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
             consumo = Consumo.objects.filter(idmesa=idmesa, estado=1).first()
+            monto_propina = request.data.get('monto_propina')
             mesa = Mesa.objects.filter(idmesa=idmesa, estado="Ocupada").first()
             if not consumo:
                 return Response({"error": "La mesa no tiene consumos abiertos."}, status=status.HTTP_404_NOT_FOUND)
@@ -186,6 +197,8 @@ class ConsumoViewSet(viewsets.ModelViewSet):
             # Cambiar estado a cerrado y guardar la fecha de cierre
             consumo.estado = 2
             consumo.fecha_cierre = timezone.now()
+            consumo.monto_propina = monto_propina
+            consumo.idmediopago = medio_pago
             consumo.save()
 
             mesa.estado = "Libre"
@@ -463,11 +476,14 @@ class EmpleadoViewSet(viewsets.ModelViewSet):
         consumos = Consumo.objects.filter(empleado=empleado)
 
         total_ventas = consumos.aggregate(total=Sum('total')).get('total', 0) or 0
+        total_propina = consumos.aggregate(total=Sum('monto_propina')).get('total', 0) or 0
 
         data = {
             "empleado": empleado.nombre,
             "rol": empleado.rol.nombre,
             "total_ingresos": total_ventas,
+            "total_propina": total_propina,
+
             "consumos": [
                 {
                     "idConsumo": c.idConsumo,
@@ -684,3 +700,44 @@ class PedidoViewSet(viewsets.ModelViewSet):
 
         # Simulación
         print("Payload enviado a PedidosYa:", payload)
+
+
+class MedioPagoViewSet(viewsets.ModelViewSet):
+    queryset = MedioPago.objects.all()
+    serializer_class = MedioPagoSerializer
+
+    @action(detail=True, methods=['get'], url_path='reporte-ventas')
+    def reporte_ventas(self, request, pk=None):
+        mediopago = self.get_object()
+
+        consumos = Consumo.objects.filter(idmediopago=mediopago)
+        pedidos = Pedido.objects.filter(idmediopago=mediopago)
+
+        total_ventas = consumos.aggregate(total=Sum('total')).get('total', 0) or 0
+        total_propina = consumos.aggregate(total=Sum('monto_propina')).get('total', 0) or 0
+
+        data = {
+            "medio_pago": mediopago.descripcion,
+            "total_ingresos": total_ventas,
+            "total_propina": total_propina,
+            "consumos": [
+                {
+                    "idConsumo": c.idConsumo,
+                    "mesa": c.idmesa.idmesa,
+                    "total": c.total,
+                    "fecha": c.fecha_inicio,
+                }
+                for c in consumos
+            ],
+            
+            "pedidos": [
+                {
+                    "idPedido": p.idpedido,
+                    "total": p.totalpedido,
+                    "fecha": p.fechapedido,
+                }
+                for p in pedidos
+            ],
+        }
+
+        return Response(data)

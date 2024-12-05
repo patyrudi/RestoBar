@@ -92,7 +92,20 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`.
 #### 5. Cerrar el Consumo Actual y Generar Ticket PDF
 **URL**: `/restaurante/api/v1/consumos/mesa/{idmesa}/cerrar/`  
 **Método**: `POST`  
-
+**Cuerpo de la solicitud (JSON)**:
+```json
+{
+    "monto_propina": 20000,
+    "id_medio_pago":1
+}
+```
+**Ejemplo de Respuesta**:
+```json
+{
+  "message": "Consumo cerrado exitosamente.",
+  "ticket_pdf": "pdf_path"
+}
+```
 
 ### Gestión de Mesas
 
@@ -232,3 +245,58 @@ La API estará disponible en `http://127.0.0.1:8000/restaurante/api/v1/`.
 }
 ```
 
+---
+
+### Medios de pagos
+
+#### a. Registrar medio de pago
+**URL**: `/restaurante/api/v1/medio-pago/`  
+**Método**: `POST`  
+**Cuerpo de la solicitud (JSON)**:
+```json
+{
+    "descripcion":"Tarjeta credito DINELCO"
+}
+```
+
+#### b. Reporte de Ventas por medio de pago
+**URL**: `/restaurante/api/v1/medio-pago/{idmediopago}/reporte-ventas/`  
+**Método**: `GET` 
+
+
+
+### Pedidos
+**Observacion**: Antes de realizar la prueba, se cuenta con una tabla donde se podra registrar todos los tipos de estados
+manejados por el negocio. Al marcar el pedido con el estado ENRGA, el sistema simula la peticion contra pedidos ya, para
+luego cambiar al nuevo estado
+Pendiente	PNTE
+En proceso	PROC
+Para entrega	ENRGA
+Entregando	ENNDO
+Finalizado	FNZDO 
+#### a. Registrar pedido
+**URL**: `/restaurante/api/v1/pedido/`  
+**Método**: `POST`  
+**Cuerpo de la solicitud (JSON)**:
+```json
+{
+    "idcliente":1,
+    "productos":[
+        {
+            "idproducto":1,
+            "cantidad":2
+        }
+    ],
+    "idmediopago":1
+}
+```
+
+#### b. Actualizar el estado del pedido
+**URL**: `/restaurante/api/v1/pedido/{idpedido}/`  
+**Método**: `PUT` 
+**Cuerpo de la solicitud (JSON)**:
+```json
+{
+    "codigoEstado":"ENRGA" // actualiza a disponible para entrega
+}
+```

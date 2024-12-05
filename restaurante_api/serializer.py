@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CategoriaProducto, Producto, Mesa, Cliente, Consumo, DetalleConsumo, Reserva, Empleado, Area, Rol, ConfiguracionSistema
+from .models import CategoriaProducto, Producto, Mesa, Cliente, Consumo, DetalleConsumo, Reserva, Empleado, Area, Rol, ConfiguracionSistema, MedioPago
 
 class CategoriaProductoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -73,3 +73,8 @@ class PedidoSerializer(serializers.Serializer):
     idmediopago = serializers.IntegerField()
     productos = DetalleProductoSerializer(many=True)
     direccionEntrega = serializers.CharField()
+
+class MedioPagoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MedioPago
+        fields = ['idmediopago', 'descripcion', 'activo']
