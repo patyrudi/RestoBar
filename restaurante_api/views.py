@@ -7,6 +7,7 @@ from django.utils import timezone
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import os
+import datetime 
 from .models import CategoriaProducto, Producto, Mesa, Cliente, Consumo, DetalleConsumo, Reserva, Empleado, Rol,  ConfiguracionSistema
 from .serializer import (
     CategoriaProductoSerializer, 
@@ -33,7 +34,6 @@ class ConsumoViewSet(viewsets.ModelViewSet):
         if Consumo.objects.filter(idmesa=idmesa, estado=1).exists():
             raise ValidationError({"error": "La mesa ya tiene un consumo abierto."})
 
-        # Si no existe, proceder con la creación del consumo
         return super().create(request, *args, **kwargs)
     
     @action(detail=False, methods=['post'], url_path=r'mesa/(?P<idmesa>\d+)/crear')
@@ -41,12 +41,11 @@ class ConsumoViewSet(viewsets.ModelViewSet):
         """
         Abre un consumo en la mesa especificada.
         Valida que no haya un consumo abierto, recibe los datos del cliente y asigna un mesero.
-        Verifica que el mesero pertenezca al área de la mesa.
+        Verifica que el mesero pertenezca al área de la mesa y considera las reservas.
         """
         if Consumo.objects.filter(idmesa=idmesa, estado=1).exists():
             return Response({"error": "La mesa ya tiene un consumo abierto."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Obtener o crear el cliente
         ciCliente = request.data.get("ciCliente")
         nombre = request.data.get("nombre")
 
@@ -55,24 +54,28 @@ class ConsumoViewSet(viewsets.ModelViewSet):
         else:
             return Response({"error": "El campo ciCliente es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Obtener el empleado (mesero) que se asignará
         id_empleado = request.data.get("empleado")
         try:
             empleado = Empleado.objects.get(idempleado=id_empleado, rol__nombre="Mesero")
         except Empleado.DoesNotExist:
             return Response({"error": "El empleado no existe o no tiene el rol de 'Mesero'."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Verificar si la mesa existe
         try:
             mesa = Mesa.objects.get(idmesa=idmesa)
+            if mesa.estado == 'Ocupada':
+                return Response({"error": "La mesa ya está ocupada."}, status=status.HTTP_400_BAD_REQUEST)
+
+            if mesa.estado == 'Reservada':
+                reservas_hoy = Reserva.objects.filter(
+                    mesa=mesa,
+                    fecha=datetime.date.today()
+                )
+                if reservas_hoy.exists():
+                    return Response({"error": "La mesa tiene una reserva para hoy y no se puede abrir un consumo."}, status=status.HTTP_400_BAD_REQUEST)
         except Mesa.DoesNotExist:
             return Response({"error": "Mesa no encontrada."}, status=status.HTTP_404_NOT_FOUND)
-
-        # Validar que el mesero trabaja en el mismo área que la mesa
         if mesa.area != empleado.area:
             return Response({"error": f"El mesero no trabaja en el área de la mesa {mesa.area.nombre}."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Crear el consumo para la mesa con el cliente y el mesero asignado
         consumo = Consumo.objects.create(
             idmesa=mesa,
             idcliente=cliente,
@@ -82,13 +85,9 @@ class ConsumoViewSet(viewsets.ModelViewSet):
         mesa.estado = "Ocupada"
         mesa.save()
 
-        # Retornar la respuesta con los datos del consumo
         serializer = ConsumoSerializer(consumo)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-
-
-    
     @action(detail=False, methods=['get'], url_path=r'mesa/(?P<idmesa>\d+)')
     def consumo_actual(self, request, idmesa=None):
         """
@@ -121,7 +120,6 @@ class ConsumoViewSet(viewsets.ModelViewSet):
             ciCliente = request.data.get("ciCliente")
             nombre = request.data.get("nombre")
 
-            # Si no existe el cliente, lo crea
             cliente, created = Cliente.objects.get_or_create(ciCliente=ciCliente, defaults={"nombre": nombre})
             consumo.idcliente = cliente
             consumo.save()
@@ -146,30 +144,23 @@ class ConsumoViewSet(viewsets.ModelViewSet):
 
             producto = Producto.objects.get(idproducto=idproducto)
 
-            # Verificar si hay suficiente stock
             if producto.stock < cantidad:
                 return Response({"error": "No hay suficiente stock."}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Crear detalle de consumo
             detalle = DetalleConsumo.objects.create(idproducto=producto, idConsumo=consumo, cantidad=cantidad)
 
-            # Actualizar el stock
             producto.stock -= cantidad
             producto.save()
 
-            # Actualizar el total del consumo
             consumo.total += producto.precio * cantidad
             consumo.save()
 
-            # Verificar si el stock ha alcanzado el nivel mínimo
             mensaje_alerta = ""
             if producto.stock <= producto.stock_minimo:
                 mensaje_alerta = f"Alerta: El stock del producto ha alcanzado o es menor al mínimo ({producto.stock_minimo})."
 
-            # Serializar el detalle de consumo
             detalle_serializer = DetalleConsumoSerializer(detalle)
 
-            # Responder con los datos del detalle y la alerta de stock mínimo, si aplica
             response_data = detalle_serializer.data
             if mensaje_alerta:
                 response_data["alerta_stock_minimo"] = mensaje_alerta
@@ -264,38 +255,29 @@ class MesaViewSet(viewsets.ModelViewSet):
         ciCliente = request.data.get("ciCliente")
         nombre = request.data.get("nombre")
 
-        # Verificar si se ha proporcionado un CI de cliente
         if not ciCliente:
             return Response({"error": "El campo ciCliente es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Obtener o crear el cliente
         try:
             cliente, created = Cliente.objects.get_or_create(ciCliente=ciCliente, defaults={"nombre": nombre})
 
-            # Si el cliente no existía y no se proporcionó nombre, debe devolverse un error
             if created and not nombre:
                 return Response({"error": "El nombre del cliente es obligatorio cuando el cliente no está registrado."}, 
                                 status=status.HTTP_400_BAD_REQUEST)
 
-            # Si el cliente fue encontrado o creado con éxito, obtenemos la mesa
             mesa = Mesa.objects.get(idmesa=idmesa)
 
-            # Verificar si la mesa está ocupada
             if mesa.estado == 'Ocupada':
                 return Response({"error": "La mesa ya está ocupada."}, status=status.HTTP_400_BAD_REQUEST)
             
-            # Verificar si la mesa está reservada
             if mesa.estado == 'Reservada':
                 return Response({"error": "La mesa está reservada."}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Cambiar el estado de la mesa a ocupada
             mesa.estado = 'Ocupada'
             mesa.save()
 
-            # Crear un consumo para la mesa y el cliente
             consumo = Consumo.objects.create(idmesa=mesa, idcliente=cliente)
 
-            # Retornar el consumo creado
             serializer = ConsumoSerializer(consumo)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -340,7 +322,6 @@ class ReservaViewSet(viewsets.ModelViewSet):
         Realiza una reserva para una mesa específica.
         Verifica la disponibilidad de la mesa, la capacidad y asocia un cliente.
         """
-        # Obtener datos de la reserva desde el request
         idmesa = request.data.get("idmesa")
         fecha = request.data.get("fecha")
         hora = request.data.get("hora")
@@ -349,33 +330,26 @@ class ReservaViewSet(viewsets.ModelViewSet):
         ciCliente = request.data.get("ciCliente")
         nombre_cliente = request.data.get("nombre")
 
-        # Validar que el campo ciCliente está presente
         if not ciCliente:
             return Response({"error": "El campo ciCliente es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Verificar si la mesa está disponible para la fecha y hora solicitadas
         if Reserva.objects.filter(mesa=idmesa, fecha=fecha, hora=hora).exists():
             return Response({"error": "La mesa ya está reservada en este horario."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Buscar o crear el cliente basado en el ciCliente
         cliente, created = Cliente.objects.get_or_create(ciCliente=ciCliente, defaults={"nombre": nombre_cliente})
 
-        # Verificar si la mesa existe
         try:
             mesa = Mesa.objects.get(idmesa=idmesa)
         except Mesa.DoesNotExist:
             return Response({"error": "Mesa no encontrada."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Validar si la cantidad de personas excede la capacidad de la mesa
         if cantidad_personas > mesa.capacidad:
             return Response({"error": f"La cantidad de personas excede la capacidad de la mesa ({mesa.capacidad})."}, 
                             status=status.HTTP_400_BAD_REQUEST)
 
-        # Cambiar el estado de la mesa a 'Reservada'
         mesa.estado = 'Reservada'
         mesa.save()
 
-        # Crear la reserva
         reserva = Reserva.objects.create(
             cliente=cliente,
             mesa=mesa,
@@ -384,10 +358,54 @@ class ReservaViewSet(viewsets.ModelViewSet):
             cantidad_personas=cantidad_personas,
             contacto=contacto
         )
-
-        # Retornar respuesta con los datos de la reserva
         reserva_serializer = ReservaSerializer(reserva)
         return Response(reserva_serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'], url_path='abrir_consumo_reserva')
+    def abrir_consumo_reserva(self, request):
+        """
+        Abre un consumo basado en una reserva existente.
+        Utiliza los datos de la reserva y valida al mesero asignado.
+        """
+        idreserva = request.data.get("idreserva")
+        idempleado = request.data.get("idempleado")
+
+        if not idreserva:
+            return Response({"error": "El campo idreserva es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
+        if not idempleado:
+            return Response({"error": "El campo idempleado es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            reserva = Reserva.objects.get(idreserva=idreserva)
+        except Reserva.DoesNotExist:
+            return Response({"error": "Reserva no encontrada."}, status=status.HTTP_404_NOT_FOUND)
+
+        if Consumo.objects.filter(idmesa=reserva.mesa, estado=1).exists():
+            return Response({"error": "La mesa ya tiene un consumo abierto."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if reserva.fecha != datetime.date.today():
+            return Response({"error": "La reserva no es para hoy."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            empleado = Empleado.objects.get(idempleado=idempleado, rol__nombre="Mesero")
+        except Empleado.DoesNotExist:
+            return Response({"error": "El empleado no existe o no tiene el rol de 'Mesero'."}, status=status.HTTP_404_NOT_FOUND)
+
+        if empleado.area != reserva.mesa.area:
+            return Response({"error": f"El mesero no trabaja en el área de la mesa {reserva.mesa.area.nombre}."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        consumo = Consumo.objects.create(
+            idmesa=reserva.mesa,
+            idcliente=reserva.cliente,
+            empleado=empleado,
+        )
+
+        reserva.mesa.estado = "Ocupada"
+        reserva.mesa.save()
+
+        serializer = ConsumoSerializer(consumo)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 
@@ -405,7 +423,6 @@ class EmpleadoViewSet(viewsets.ModelViewSet):
         area_nombre = request.data.get("area")
         rol_nombre = request.data.get("rol")
 
-        # Verificar que el nombre está presente
         if not nombre:
             return Response({"error": "El campo 'nombre' es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -413,19 +430,16 @@ class EmpleadoViewSet(viewsets.ModelViewSet):
         area = None
         rol = None
 
-        # Validar área
         try:
             area = Area.objects.get(nombre=area_nombre)
         except Area.DoesNotExist:
             errores["area"] = list(Area.objects.values_list("nombre", flat=True))
 
-        # Validar rol
         try:
             rol = Rol.objects.get(nombre=rol_nombre)
         except Rol.DoesNotExist:
             errores["rol"] = list(Rol.objects.values_list("nombre", flat=True))
 
-        # Si hay errores, retornar respuesta
         if errores:
             return Response(
                 {
@@ -435,10 +449,8 @@ class EmpleadoViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Crear empleado
         empleado = Empleado.objects.create(nombre=nombre, area=area, rol=rol)
 
-        # Serializar y retornar el empleado creado
         serializer = self.get_serializer(empleado)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
