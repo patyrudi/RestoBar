@@ -63,3 +63,13 @@ class ConfiguracionSistemaSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConfiguracionSistema
         fields = '__all__'
+
+class DetalleProductoSerializer(serializers.Serializer):
+    idproducto = serializers.IntegerField()
+    cantidad = serializers.IntegerField(min_value=1)
+
+class PedidoSerializer(serializers.Serializer):
+    idcliente = serializers.IntegerField()
+    idmediopago = serializers.IntegerField()
+    productos = DetalleProductoSerializer(many=True)
+    direccionEntrega = serializers.CharField()

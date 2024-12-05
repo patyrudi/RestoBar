@@ -118,3 +118,52 @@ class ConfiguracionSistema(models.Model):
 
     def __str__(self):
         return "Configuración del sistema"
+
+
+class MedioPago(models.Model):
+    idmediopago = models.AutoField(primary_key=True)
+    descripcion = models.CharField(max_length=100)
+    codigo = models.CharField(max_length=20, unique=True)
+    activo = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.descripcion
+
+class Pedido(models.Model):
+    idpedido = models.AutoField(primary_key=True)
+    fechapedido = models.DateTimeField(auto_now_add=True)
+    idcliente = models.ForeignKey('Cliente', on_delete=models.CASCADE, related_name='pedidos')
+    idempleado = models.ForeignKey('Empleado', null=True, on_delete=models.CASCADE, related_name='pedidos')
+    totalpedido = models.DecimalField(max_digits=10, decimal_places=2)
+    idestadopedido = models.ForeignKey('TipoEstadoPedido', on_delete=models.CASCADE, null=True, related_name='pedidos')
+    idmediopago = models.ForeignKey('MedioPago', on_delete=models.CASCADE, null=True, related_name='pedidos')
+    direccion_entrega = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"Pedido #{self.idpedido} - Cliente: {self.idcliente.nombre}"
+
+class DetallePedido(models.Model):
+    iddetalle = models.AutoField(primary_key=True)
+    idpedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='detalles')
+    idproducto = models.ForeignKey('Producto', on_delete=models.CASCADE, related_name='detalles')
+    cantidad = models.PositiveIntegerField()
+
+    def __str__(self):
+        return f"Detalle #{self.iddetalle} - Pedido: {self.idpedido.idpedido}"
+
+class TipoEstadoPedido(models.Model):
+    idtipoestado = models.AutoField(primary_key=True)
+    descripcion = models.CharField(max_length=100)
+    codigo = models.CharField(max_length=20, unique=True)
+    activo = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.descripcion
+
+class EstadoPedido(models.Model):
+    idtipoestado = models.ForeignKey(TipoEstadoPedido, on_delete=models.CASCADE, related_name='estados')
+    idpedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='estados')
+    fechacreacion = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Estado: {self.idtipoestado.descripcion} - Pedido: {self.idpedido.idpedido}"

@@ -8,7 +8,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import os
 import datetime 
-from .models import CategoriaProducto, Producto, Mesa, Cliente, Consumo, DetalleConsumo, Reserva, Empleado, Rol,  ConfiguracionSistema
+from .models import CategoriaProducto, Producto, Mesa, Cliente, Consumo, DetalleConsumo, Reserva, Empleado, Rol,  ConfiguracionSistema, Pedido, DetallePedido, TipoEstadoPedido, EstadoPedido, MedioPago
 from .serializer import (
     CategoriaProductoSerializer, 
     ProductoSerializer, 
@@ -21,7 +21,9 @@ from .serializer import (
     EmpleadoSerializer,
     RolSerializer,
     Area,
-    ConfiguracionSistemaSerializer
+    ConfiguracionSistemaSerializer,
+    PedidoSerializer,
+    DetalleProductoSerializer
 )
 
 class ConsumoViewSet(viewsets.ModelViewSet):
@@ -511,4 +513,174 @@ class ConfiguracionSistemaViewSet(viewsets.ModelViewSet):
             )
         
         return super().create(request, *args, **kwargs)
+
+class PedidoViewSet(viewsets.ModelViewSet):
+    queryset = Pedido.objects.all()
+    serializer_class = PedidoSerializer
+
+    def create(self, request):
+        serializer = PedidoSerializer(data=request.data)
+        if serializer.is_valid():
+            # Crear el pedido
+            idcliente = serializer.validated_data['idcliente']
+            idmediopago = serializer.validated_data['idmediopago']
+            productos = serializer.validated_data['productos']
+            direccion_entrega = serializer.validated_data['direccionEntrega']
+
+            if not productos:
+                return Response({"message": "No se proporcionaron productos para el pedido."}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                cliente = Cliente.objects.get(idcliente=idcliente)
+            except Cliente.DoesNotExist:
+                return Response(
+                    {"message": f"Cliente con ID {idcliente} no encontrado."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            try:
+                mediopago = MedioPago.objects.get(idmediopago=idmediopago)
+            except MedioPago.DoesNotExist:
+                return Response(
+                    {"message": f"Medio de pago con ID {idcliente} no encontrado."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            estado_pedido = TipoEstadoPedido.objects.get(codigo = 'PNTE');
+            
+            pedido = Pedido.objects.create(
+                idcliente_id=idcliente,
+                idmediopago_id=idmediopago,
+                idestadopedido_id= estado_pedido.idtipoestado,
+                totalpedido=0,
+                direccion_entrega= direccion_entrega
+            )
+
+            total = 0
+            for producto_data in productos:
+                idproducto = producto_data['idproducto']
+                cantidad = producto_data['cantidad']
+
+                producto = Producto.objects.get(idproducto=idproducto)
+
+                try:
+                    # verificacion si existe el producto
+                    producto = Producto.objects.get(idproducto=idproducto)
+                except Producto.DoesNotExist:
+                    return Response(
+                        {"message": f"Producto con ID {idproducto} no encontrado."},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+
+                if producto.stock < cantidad:
+                    return Response({"message": f"No se cuenta con stock suficiente para el producto {producto.nombreProducto} ."}, status=status.HTTP_400_BAD_REQUEST)
+
+                total += producto.precio * cantidad
+
+                # Crear detalle del pedido
+                DetallePedido.objects.create(
+                    idpedido=pedido,
+                    idproducto=producto,
+                    cantidad=cantidad,
+                )
+
+                # Actualizar stock
+                producto.stock -= cantidad
+                producto.save()
+
+            # Actualizar total del pedido
+            pedido.totalpedido = total
+            pedido.save()
+
+            EstadoPedido.objects.create(
+                idtipoestado_id = estado_pedido.idtipoestado,
+                idpedido_id= pedido.idpedido
+            )
+
+            return Response({"idpedido": pedido.idpedido, 
+                            "message": "Pedido creado con éxito.",
+                            "totalPagar": total
+            }, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+
+    def update(self, request, pk=None):
+        data = request.data
+        codigo_estado = data.get('codigoEstado')
+
+        if codigo_estado is None:
+            return Response({"message": "Debe proporcionar el nuevo estado del pedido."}, 
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            pedido = Pedido.objects.get(pk=pk) 
+        except Pedido.DoesNotExist: 
+            return Response({"message": "Pedido no encontrado."}, 
+                            status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            tipoestado = TipoEstadoPedido.objects.get(codigo=codigo_estado) 
+        except Pedido.DoesNotExist: 
+            return Response({"message": f"No existe el estado {codigo_estado}."}, 
+                            status=status.HTTP_404_NOT_FOUND)
+        
+        EstadoPedido.objects.create(
+            idtipoestado_id = tipoestado.idtipoestado,
+            idpedido_id= pedido.idpedido
+        )
+
+        if codigo_estado == 'ENRGA':
+            # aqui se simula la peticion a la API de pedidos ya 
+            self.enviar_a_pedidos_ya(pedido)
+            
+        
+        pedido.idestadopedido_id = tipoestado.idtipoestado
+        pedido.save()
+
+        return Response({
+                        "message": f"Se actualizo con éxito el estado del pedido.",
+                        "estado": tipoestado.descripcion
+        }, status=status.HTTP_200_OK)
+    
+    def enviar_a_pedidos_ya(self, pedido):
+        # Obtener detalles del pedido
+        cliente = pedido.idcliente
+        detalles = DetallePedido.objects.filter(idpedido=pedido.idpedido)
+        
+        # Construir la lista de productos
+        productos = []
+        for detalle in detalles:
+            producto = Producto.objects.get(idproducto=detalle.idproducto_id)
+            productos.append({
+                "nombre": producto.nombreProducto,
+                "cantidad": detalle.cantidad,
+                "precio_unitario": producto.precio
+            })
+
+        # Construir el payload
+        payload = {
+            "cliente": {
+                "nombre": cliente.nombre,
+                "direccion": pedido.direccion_entrega,
+            },
+            "pedido": {
+                "monto_total": pedido.totalpedido,
+                "productos": productos
+            },
+            "medio_pago": {
+                "descripcion": pedido.idmediopago.descripcion
+            },
+            "entrega": {
+                "tipo": "delivery",
+                "instrucciones": "Tocar el timbre y dejar en la puerta si no hay respuesta."
+            }
+        }
+
+        # Aquí podrías realizar la solicitud a la API de PedidosYa
+        # Por ejemplo:
+        # response = requests.post("https://api.pedidosya.com/delivery", json=payload)
+        # print(response.json())
+
+        # Simulación
+        print("Payload enviado a PedidosYa:", payload)

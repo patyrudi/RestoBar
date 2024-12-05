@@ -11,7 +11,8 @@ from .views import (
     EmpleadoViewSet,
     RolViewSet,
     AreaViewSet,
-    ConfiguracionSistemaViewSet
+    ConfiguracionSistemaViewSet,
+    PedidoViewSet
 )
 
 # Crear el router
@@ -27,6 +28,7 @@ router.register(r'empleados', EmpleadoViewSet)
 router.register(r'roles', RolViewSet)  
 router.register(r'areas', AreaViewSet)
 router.register(r'configuracion-sistema',ConfiguracionSistemaViewSet)
+router.register(r'pedido', PedidoViewSet)
 
 # Incluir las rutas generadas por el router
 urlpatterns = [
